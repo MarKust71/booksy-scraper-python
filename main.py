@@ -191,10 +191,6 @@ for page_number in range(1, number_of_pages + 1):
 
         connections_list.append(connection_dict)
 
-# pprint(connections_list)
-# print(f"Liczba połączeń: {len(connections_list)}")
-
-
 
 # %%
 import os, psycopg2
@@ -211,7 +207,7 @@ DB_USER     = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 
 def db_add_connections(connections_list):
-    pprint(connections_list)
+    print(f"Liczba połączeń: {len(connections_list)}")
 
     # ——— ZAPIS DO BAZY POSTGRES ———
     try:
@@ -232,82 +228,80 @@ def db_add_connections(connections_list):
         cur = conn.cursor()
         print(f"  PostgreSQL cursor: {cur}")
 
-        # ## tworzymy tabelę (jeśli nie istnieje) z dodatkowymi polami na zdjęcie i kontakt_info
-        # print("  Tworzenie tabeli...")
-        # cur.execute("""
-        #             CREATE TABLE IF NOT EXISTS connections (
-        #                                                         id                          SERIAL PRIMARY KEY,
-        #                                                         booksy_business_name        TEXT,
-        #                                                         booksy_url                  TEXT UNIQUE,
-        #                                                         is_promoted                 BOOLEAN,
-        #                                                         location_raw                TEXT,
-        #                                                         location_postal_code        TEXT,
-        #                                                         location_city               TEXT,
-        #                                                         location_district           TEXT,
-        #                                                         location_street             TEXT,
-        #                                                         location_building           TEXT,
-        #                                                         location_local              TEXT,
-        #                                                         registered_business_name    TEXT,
-        #                                                         phone                       TEXT,
-        #                                                         email                       TEXT,
-        #                                                         created_on                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        #                                                         updated_on                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        #             );
-        #             """)
-        # conn.commit()
-        # print("  Tworzenie tabeli zakończone.")
-        #
-        # ## dodajemy funkcję do aktualizacji updated_on
-        # print("  Dodawanie funkcji do aktualizacji updated_on...")
-        # cur.execute("""
-        #             CREATE OR REPLACE FUNCTION update_updated_on_column()
-        #             RETURNS TRIGGER AS $$
-        #             BEGIN
-        #             NEW.updated_on = CURRENT_TIMESTAMP;
-        #             RETURN NEW;
-        #             END;
-        #             $$ LANGUAGE plpgsql;
-        # """)
-        # conn.commit()
-        # print("  Dodawanie funkcji zakończone.")
-        #
-        # ## dodajemy trigger do tabeli connections
-        # print("  Dodawanie triggera do tabeli connections...")
-        # cur.execute("""
-        #             CREATE TRIGGER set_updated_on
-        #             BEFORE UPDATE ON connections
-        #             FOR EACH ROW
-        #             EXECUTE FUNCTION update_updated_on_column();
-        # """)
-        # conn.commit()
-        # print("  Dodawanie triggera zakończone.")
-        #
-        #
-        # ## ——— Dodaj unikalny indeks na contact_info.profile ———
-        # print("  Dodawanie unikalnego indeksu na contact_info.profile...")
-        # cur.execute("""
-        #             CREATE UNIQUE INDEX IF NOT EXISTS unique_booksy_url
-        #                 ON connections (booksy_url);
-        #             """)
-        # conn.commit()
-        # print("  Dodawanie unikalnego indeksu zakończone.")
-        # print("Tworzenie tabeli zakończone.")
-        # ## koniec tworzenia tabeli
+        ###############################################
+        ## tworzymy tabelę (jeśli nie istnieje) z dodatkowymi polami na zdjęcie i kontakt_info
+        print("  Tworzenie tabeli...")
+        cur.execute("""
+                    CREATE TABLE IF NOT EXISTS connections (
+                                                                id                          SERIAL PRIMARY KEY,
+                                                                booksy_business_name        TEXT,
+                                                                booksy_url                  TEXT UNIQUE,
+                                                                is_promoted                 BOOLEAN,
+                                                                location_raw                TEXT,
+                                                                location_postal_code        TEXT,
+                                                                location_city               TEXT,
+                                                                location_district           TEXT,
+                                                                location_street             TEXT,
+                                                                location_building           TEXT,
+                                                                location_local              TEXT,
+                                                                registered_business_name    TEXT,
+                                                                phone                       TEXT,
+                                                                email                       TEXT,
+                                                                created_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                                updated_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    """)
+        conn.commit()
+        print("  Tworzenie tabeli zakończone.")
+
+        ## dodajemy funkcję do aktualizacji updated_at
+        print("  Dodawanie funkcji do aktualizacji updated_at...")
+        cur.execute("""
+                    CREATE OR REPLACE FUNCTION update_updated_at_column()
+                    RETURNS TRIGGER AS $$
+                    BEGIN
+                    NEW.updated_at = CURRENT_TIMESTAMP;
+                    RETURN NEW;
+                    END;
+                    $$ LANGUAGE plpgsql;
+        """)
+        conn.commit()
+        print("  Dodawanie funkcji zakończone.")
+
+        ## dodajemy trigger do tabeli connections
+        print("  Dodawanie triggera do tabeli connections...")
+        cur.execute("""
+                    DROP TRIGGER IF EXISTS set_updated_at ON connections;
+                    CREATE TRIGGER set_updated_at
+                    BEFORE UPDATE ON connections
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+        """)
+        conn.commit()
+        print("  Dodawanie triggera zakończone.")
+
+
+        ## ——— Dodaj unikalny indeks na contact_info.profile ———
+        print("  Dodawanie unikalnego indeksu na contact_info.profile...")
+        cur.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS unique_booksy_url
+                        ON connections (booksy_url);
+                    """)
+        conn.commit()
+        print("  Dodawanie unikalnego indeksu zakończone.")
+        print("Tworzenie tabeli zakończone.")
+        ## koniec tworzenia tabeli
+        ###############################################
 
 
         cur.execute("SELECT booksy_url FROM connections;")
         seen_connections = {row[0] for row in cur.fetchall() if row[0]}
+        print(f"Liczba unikalnych połączeń: {len(seen_connections)}")
 
         ## dodawanie rekordów do tabeli
+        number = 0
         for c in connections_list:
-            pass
-        #     # parsowanie daty w formacie "March 10, 2022" lub innego (usuwa "connected on ")
-        #     try:
-        #         dt = datetime.strptime(c["connected_on"], "%B %d, %Y").date()
-        #     except Exception:
-        #         dt = None
-        #
-        #     pprint.pprint(c)
+            pprint(c)
             cur.execute("""
                         INSERT INTO connections
                         (booksy_business_name, booksy_url, is_promoted, location_raw,
@@ -330,8 +324,14 @@ def db_add_connections(connections_list):
                             "",
                             ""
                         ))
-        conn.commit()
+            conn.commit()
+            number += 1
+            print(number)
+
         ## koniec dodawania rekordów
+
+        cur.execute("SELECT booksy_url FROM connections;")
+        seen_connections = {row[0] for row in cur.fetchall() if row[0]}
 
         # zamknięcie połączenia
         cur.close()
@@ -345,8 +345,8 @@ def db_add_connections(connections_list):
             print("PostgreSQL connection closed.")
     # ——— KONIEC ZAPISU ———
 
+
     return seen_connections
 
-# db_add_connections(connections_list)
 seen_connections = db_add_connections(connections_list)
 print(f"Liczba unikalnych połączeń: {len(seen_connections)}")
